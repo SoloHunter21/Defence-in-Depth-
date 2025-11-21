@@ -1,0 +1,72 @@
+SPANNING TREE PROTOCOL (STP)
+------------------------------------
+- BPDU (Bridge Protocol Data Unit)
+  - BPDUs are sent only by switches to exchange STP information.
+  - PCs do not send BPDUs.
+  - They help switches elect the root bridge and prevent loops.
+
+- STP Port States (Default Timers)
+  1. Listening (15 sec) – The switch listens for BPDUs to determine the network topology. No MAC addresses are learned.
+  2. Learning (15 sec) – The switch starts learning MAC addresses but does not forward traffic yet.
+  3. Forwarding – The port forwards user traffic normally after ensuring there are no loops.
+
+PORTFAST
+------------------------------------
+- Used on access ports connected to end devices (like PCs).
+- Skips the Listening and Learning states and transitions immediately to Forwarding.
+- Reduces startup time for devices to get network access.
+- If a BPDU is received on a PortFast port, the port goes into err-disable (shutdown) state to prevent loops.
+
+ROOT GUARD
+------------------------------------
+- Prevents a port from becoming a root port if a switch connected to it advertises a better BPDU (lower priority).
+- If a superior BPDU is received, the port goes into a root-inconsistent (blocked) state.
+- Once the superior BPDUs stop, the port automatically returns to normal.
+- Used on ports facing other switches to enforce the current root bridge.
+
+PORT SECURITY
+------------------------------------
+- Controls access to the switch port based on MAC addresses.
+- Can limit how many MACs can connect and what happens on violation.
+
+Violation Modes:
+1. Protect – Drops unauthorized frames silently.
+2. Restrict – Drops unauthorized frames and logs the violation (syslog/SNMP).
+3. Shutdown – Puts the port into err-disable mode (default).
+
+DHCP SNOOPING
+------------------------------------
+- Security feature that prevents rogue DHCP servers.
+- Defines trusted and untrusted ports:
+  - Trusted → connected to legitimate DHCP servers.
+  - Untrusted → connected to clients (default).
+- Only trusted ports can send DHCP server messages (Offers and Acks).
+- The switch builds a DHCP Binding Table of IP–MAC–VLAN–port mappings.
+- Protects against DHCP starvation and man-in-the-middle attacks.
+
+DHCP Message Flow:
+1. Discover – Client broadcasts request for IP.
+2. Offer – Server offers an IP address.
+3. Request – Client requests the offered IP.
+4. Acknowledgment – Server confirms and assigns the IP.
+
+Optional Feature:
+ip dhcp snooping information option → Inserts Option 82 (relay info) to identify the port and switch the request came from.
+
+DHCP STARVATION ATTACK
+------------------------------------
+- An attacker sends many fake DHCP Discover messages to exhaust the DHCP server’s IP pool.
+- Prevented by enabling DHCP Snooping, which blocks untrusted sources from acting as DHCP servers.
+
+SUMMARY TABLE
+---------------|---------------------------|------------------------------|-----------------------------------|
+Feature        | Purpose                   | Key Command                  | Reaction to Violation             |
+---------------|---------------------------|------------------------------|-----------------------------------|
+PortFast       | Speeds up PC connectivity | spanning-tree portfast       | Err-disable if BPDU received      |
+---------------|---------------------------|------------------------------|-----------------------------------|
+Root Guard     | Enforces root bridge      | spanning-tree guard root     | Root-inconsistent state           |
+---------------|---------------------------|------------------------------|-----------------------------------|
+Port Security  | Limits MAC access         | switchport port-security     | Protect / Restrict / Shutdown     |
+---------------|---------------------------|------------------------------|-----------------------------------|
+DHCP Snooping  | Blocks rogue DHCP         | ip dhcp snooping             | Blocks unauthorized DHCP traffic  |
+---------------|---------------------------|------------------------------|-----------------------------------|
