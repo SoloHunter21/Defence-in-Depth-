@@ -1,0 +1,58 @@
+Title: How to Create a Network Topology from a Project Scenario
+
+---
+STEP-BY-STEP GUIDE:
+
+1. READ & ANALYZE THE SCENARIO
+   - Identify departments, users, services, and locations.
+   - Look for performance, security, or redundancy requirements.
+   - Example: “Finance and HR must be isolated, but both access internal servers.”
+
+2. DEFINE SCOPE & OBJECTIVES
+   - Specify what you’re designing: LAN, WAN, Data Center, or full enterprise.
+   - Set project boundaries (you’re not building the internet).
+
+3. BREAK DOWN THE NETWORK LAYERS
+   - Core: Main routing backbone.
+   - Distribution: Policy and inter-VLAN routing.
+   - Access: End-user connections.
+   - Edge/DMZ: Firewalls, internet access, VPNs.
+
+4. MAP REQUIREMENTS TO TECHNOLOGIES
+   - Department isolation → VLANs + ACLs or ZBFW.
+   - Secure remote access → VPN or DMVPN.
+   - Routing efficiency → OSPF, EIGRP.
+   - Redundancy → HSRP/VRRP, EtherChannel.
+
+5. DESIGN THE LOGICAL TOPOLOGY
+   - Decide which devices connect logically (routers, switches, firewalls, servers).
+   - Keep zones clearly separated: Inside, DMZ, Outside.
+
+6. DESIGN THE PHYSICAL TOPOLOGY
+   - Determine actual interfaces and connections.
+   - Use clean naming conventions (R1, SW1, FW1, etc.).
+
+7. PLAN IP ADDRESSES & VLANs
+   - Create an IP scheme with subnets per department or site.
+   - Label VLANs: VLAN10-HR, VLAN20-Finance, VLAN30-Servers.
+
+8. SELECT ROUTING & SECURITY PROTOCOLS
+   - Routing: EIGRP, or OSPF depending on scale.
+   - Security: ACLs, Zone-Based Firewall, IPS, NAT.
+   
+9. IMPLEMENT AND TEST
+   - Simulate in Packet Tracer or EVE-NG.
+   - Ping across zones, test ACLs, failover, and routing convergence.
+
+10. DOCUMENT & PRESENT
+   - Diagram with clear labels.
+   - IP plan and protocol summary.
+   - Explain why each design choice was made.
+
+---
+PRACTICAL TIPS:
+- Keep your topology modular — easy to expand.
+- Don’t mix routing protocols without redistribution planning.
+- Use color-coded zones (Inside, DMZ, Outside) for clarity.
+- Always verify reachability and security behavior.
+- Save configurations at every stage.
