@@ -1,0 +1,24 @@
+R3 Firewall Security Policy
+---------------------------
+
+Internal Network (Trusted):
+- Can initiate any type of traffic (TCP, UDP, ICMP) to the Internet.
+- Can receive return traffic from the Internet (responses to internal requests).
+- Cannot initiate or receive any traffic to/from the Conference Room Network.
+- No unsolicited traffic from the Internet is allowed.
+
+Conference Room Network (Untrusted):
+- Can initiate only web traffic (HTTP - port 80, HTTPS - port 443) to the Internet.
+- Can receive return web traffic from the Internet (responses to HTTP/HTTPS requests).
+- Cannot initiate or receive any traffic to/from the Internal Network.
+- All other types of traffic are blocked.
+
+Internet:
+- Cannot initiate any traffic to the Internal or Conference Room Networks.
+- Can only respond to traffic that was initiated from within the R3 site (either Internal or Conference Room networks).
+
+Summary:
+- No direct communication is allowed between the Internal and Conference Room networks.
+- Only return traffic is allowed from the Internet.
+- Only the Internal network has full access to the Internet.
+- The Conference Room network is restricted to web browsing only.

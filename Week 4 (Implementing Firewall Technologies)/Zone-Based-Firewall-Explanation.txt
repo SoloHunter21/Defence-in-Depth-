@@ -1,0 +1,104 @@
+Zone-Based Firewall Configuration Explanation
+
+------------------------------------------------------------
+1. ZONE DEFINITIONS
+------------------------------------------------------------
+zone security INSIDE
+zone security CONFROOM
+zone security INTERNET
+
+- Creates three security zones (logical network groups):
+  • INSIDE  → internal LAN (trusted)
+  • CONFROOM → limited access zone
+  • INTERNET → external/untrusted zone
+
+Each interface will be assigned to one of these zones.
+
+------------------------------------------------------------
+2. CLASS MAPS (MATCH TRAFFIC TYPES)
+------------------------------------------------------------
+class-map type inspect match-any INSIDE_PROTOCOLS
+ match protocol tcp
+ match protocol udp
+ match protocol icmp
+
+- Matches TCP, UDP, and ICMP traffic from INSIDE zone.
+
+class-map type inspect match-any CONFROOM_PROTOCOLS 
+ match protocol http
+ match protocol https
+ match protocol dns
+
+- Matches only HTTP, HTTPS, and DNS traffic from CONFROOM zone.
+
+------------------------------------------------------------
+3. POLICY MAPS (DEFINE ACTIONS)
+------------------------------------------------------------
+policy-map type inspect INSIDE_TO_INTERNET
+ class type inspect INSIDE_PROTOCOLS
+  inspect
+
+- Allows TCP, UDP, ICMP traffic from INSIDE → INTERNET.
+- 'inspect' means stateful inspection (return traffic is allowed).
+
+policy-map type inspect CONFROOM_TO_INTERNET
+ class type inspect CONFROOM_PROTOCOLS
+  inspect
+
+- Allows only HTTP, HTTPS, DNS traffic from CONFROOM → INTERNET.
+- All other protocols are denied by default.
+
+------------------------------------------------------------
+4. ZONE PAIRS (LINK ZONES)
+------------------------------------------------------------
+zone-pair security INSIDE_TO_INTERNET source INSIDE destination INTERNET
+ service-policy type inspect INSIDE_TO_INTERNET
+
+- Defines allowed communication from INSIDE → INTERNET.
+
+zone-pair security CONFROOM_TO_INTERNET source CONFROOM destination INTERNET
+ service-policy type inspect CONFROOM_TO_INTERNET
+
+- Defines allowed communication from CONFROOM → INTERNET.
+
+Note: No reverse zone-pair means INTERNET cannot initiate traffic to INSIDE or CONFROOM.
+
+------------------------------------------------------------
+5. INTERFACE ASSIGNMENTS
+------------------------------------------------------------
+interface E0/2
+ zone-member security CONFROOM
+
+interface E0/3
+ zone-member security INSIDE
+
+interface S0/1
+ zone-member security INTERNET
+
+- Assigns interfaces to their respective zones.
+
+------------------------------------------------------------
+6. SHOW COMMANDS
+------------------------------------------------------------
+show zone-pair security
+- Displays all configured zone-pairs and linked policies.
+
+show policy-map type inspect zone-pair
+- Shows packet statistics (matched, inspected, dropped).
+
+show zone security
+- Lists zones, interfaces, and assigned policies.
+
+------------------------------------------------------------
+SUMMARY
+------------------------------------------------------------
+- INSIDE → INTERNET: full access (TCP/UDP/ICMP) with inspection.
+- CONFROOM → INTERNET: limited access (HTTP/HTTPS/DNS only).
+- INTERNET → any internal zone: blocked unless return traffic.
+- Stateful inspection allows legitimate return packets automatically.
+
+------------------------------------------------------------
+Verification Tip:
+From CONFROOM, HTTP should pass but ICMP should fail.
+From INSIDE, both HTTP and ICMP should work.
+------------------------------------------------------------

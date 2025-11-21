@@ -1,0 +1,84 @@
+Zone-Based Firewall Concepts and Explanation
+
+------------------------------------------------------------
+1. ZONES
+------------------------------------------------------------
+- A zone is a logical grouping of interfaces (physical or virtual) that share similar security requirements.
+- In a zone-based firewall, policies are defined based on traffic between zones rather than directly between IP addresses.
+- This approach simplifies management and enforces consistent security boundaries.
+
+------------------------------------------------------------
+2. CLASS-MAPS
+------------------------------------------------------------
+- A class-map is used to select or identify specific types of traffic based on protocols or characteristics.
+- It defines what traffic will be acted upon by the policy.
+- The 'match-any' or 'match-all' keywords define how multiple conditions are evaluated:
+  • match-any → Logical OR (traffic matches if any condition is true)
+  • match-all → Logical AND (traffic matches only if all conditions are true)
+
+Example:
+class-map type inspect match-any INSIDE_PROTOCOLS
+ match protocol tcp
+ match protocol udp
+ match protocol icmp
+
+------------------------------------------------------------
+3. POLICY-MAPS
+------------------------------------------------------------
+- A policy-map decides the fate of the traffic selected by a class-map.
+- It defines the action that should be taken on the matched traffic.
+- Common actions include: inspect, pass, or drop.
+
+Actions explained:
+  • inspect → Allows and tracks traffic. Enables stateful inspection so that return traffic is automatically allowed.
+  • pass → Allows traffic without inspection. Return traffic is NOT automatically allowed unless explicitly permitted by another policy in the reverse direction.
+  • drop → Silently discards traffic. No response is sent to the sender.
+
+Example:
+policy-map type inspect INSIDE_TO_INTERNET
+ class type inspect INSIDE_PROTOCOLS
+  inspect
+
+------------------------------------------------------------
+4. RELATIONSHIP BETWEEN CLASS-MAP AND POLICY-MAP
+------------------------------------------------------------
+- Class-maps define what traffic is selected.
+- Policy-maps define what to do with that traffic.
+- Policy-maps can reference multiple class-maps to apply different actions to different types of traffic.
+
+------------------------------------------------------------
+5. TYPES OF CLASS-MAPS AND POLICY-MAPS
+------------------------------------------------------------
+- Class-maps and policy-maps are typed objects in Cisco’s Modular Policy Framework.
+- The type defines what they are used for and what kind of traffic they can match or control.
+
+Examples:
+  • class-map type inspect → used to match traffic for firewall inspection.
+  • policy-map type inspect → used to apply firewall actions (inspect, pass, drop) to the matched traffic.
+
+------------------------------------------------------------
+6. ZONE-PAIR
+------------------------------------------------------------
+- A zone-pair defines a unidirectional security policy between two zones.
+- It specifies which policy-map is applied to traffic flowing from one zone (source) to another (destination).
+
+Example:
+zone-pair security INSIDE_TO_INTERNET source INSIDE destination INTERNET
+ service-policy type inspect INSIDE_TO_INTERNET
+
+- Traffic from INSIDE to INTERNET is allowed or inspected based on the linked policy-map.
+- Return traffic is handled dynamically if 'inspect' is used.
+- No zone-pair in the reverse direction means that new sessions cannot be initiated from the destination zone back to the source zone.
+
+------------------------------------------------------------
+SUMMARY
+------------------------------------------------------------
+- Zones group interfaces with similar security levels.
+- Class-maps identify the traffic to control.
+- Policy-maps decide what to do with that traffic.
+- Zone-pairs connect zones and apply policy-maps between them.
+- Actions (inspect, pass, drop) determine whether traffic is tracked, allowed, or denied.
+
+------------------------------------------------------------
+This structure allows Cisco Zone-Based Firewalls to implement stateful inspection and granular traffic control between defined security zones.
+------------------------------------------------------------
