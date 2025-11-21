@@ -1,0 +1,161 @@
+SITE-TO-SITE VPN CONFIGURATION (R1 & R3)
+===============================================================
+
+---------------------------------------------------------------
+1. ENABLE IKE
+---------------------------------------------------------------
+R1(config)# crypto isakmp enable
+R3(config)# crypto isakmp enable
+
+Explanation:
+Activates the Internet Key Exchange (IKE) process on the router, required for negotiating and establishing IPsec tunnels.
+
+
+---------------------------------------------------------------
+2. CONFIGURE IKE PHASE 1 POLICY
+---------------------------------------------------------------
+R1(config)# crypto isakmp policy 10
+R1(config-isakmp)# encryption aes 256       ← Type of encryption (AES 256-bit)
+R1(config-isakmp)# hash sha                 ← Hash algorithm for integrity
+R1(config-isakmp)# authentication pre-share ← Use pre-shared key authentication
+R1(config-isakmp)# group 14                 ← Diffie-Hellman Group 14 for key exchange
+R1(config-isakmp)# lifetime 3600            ← Lifetime in seconds (1 hour)
+R1(config-isakmp)# exit
+
+R3(config)# crypto isakmp policy 10
+R3(config-isakmp)# encryption aes 256
+R3(config-isakmp)# hash sha
+R3(config-isakmp)# authentication pre-share
+R3(config-isakmp)# group 14
+R3(config-isakmp)# lifetime 3600
+R3(config-isakmp)# exit
+
+Explanation:
+Defines the IKE Phase 1 parameters for establishing the secure key exchange channel.
+Both routers must have identical parameters for successful negotiation.
+
+
+---------------------------------------------------------------
+3. CONFIGURE PRE-SHARED KEYS
+---------------------------------------------------------------
+R1(config)# crypto isakmp key <PRESHARED_KEY> address <REMOTE_PEER_IP>
+R3(config)# crypto isakmp key <PRESHARED_KEY> address <REMOTE_PEER_IP>
+
+Example:
+R1(config)# crypto isakmp key cisco123 address 10.2.2.1
+R3(config)# crypto isakmp key cisco123 address 10.1.1.1
+
+Explanation:
+Defines the shared secret key used for peer authentication during IKE Phase 1.
+Each router references the IP address of its remote peer.
+
+
+---------------------------------------------------------------
+4. CONFIGURE IPSEC TRANSFORM SET (PHASE 2)
+---------------------------------------------------------------
+R1(config)# crypto ipsec transform-set VPN-SET esp-aes 256 esp-sha-hmac
+R3(config)# crypto ipsec transform-set VPN-SET esp-aes 256 esp-sha-hmac
+
+Explanation:
+Defines how data will be encrypted and authenticated in IPsec Phase 2.
+Both sides must use the same transform set configuration.
+
+
+---------------------------------------------------------------
+5. SET IPSEC SECURITY ASSOCIATION (SA) LIFETIME
+---------------------------------------------------------------
+R1(config)# crypto ipsec security-association lifetime seconds 1800
+R3(config)# crypto ipsec security-association lifetime seconds 1800
+
+Explanation:
+Sets how long the encryption keys remain valid before rekeying (30 minutes here).
+
+
+---------------------------------------------------------------
+6. DEFINE INTERESTING TRAFFIC (ACL)
+---------------------------------------------------------------
+R1(config)# access-list 101 permit ip <LOCAL_SUBNET> <WILDCARD> <REMOTE_SUBNET> <WILDCARD>
+R3(config)# access-list 101 permit ip <REMOTE_SUBNET> <WILDCARD> <LOCAL_SUBNET> <WILDCARD>
+
+Example:
+R1(config)# access-list 101 permit ip 192.168.1.0 0.0.0.255 192.168.3.0 0.0.0.255
+R3(config)# access-list 101 permit ip 192.168.3.0 0.0.0.255 192.168.1.0 0.0.0.255
+
+Explanation:
+Specifies the traffic that should be encrypted by IPsec.
+Only packets matching these ACLs will go through the VPN tunnel.
+
+
+---------------------------------------------------------------
+7. CREATE CRYPTO MAP
+---------------------------------------------------------------
+R1(config)# crypto map CMAP 10 ipsec-isakmp
+R1(config-crypto-map)# match address 101
+R1(config-crypto-map)# set peer <REMOTE_PEER_IP>
+R1(config-crypto-map)# set pfs group14
+R1(config-crypto-map)# set transform-set VPN-SET
+R1(config-crypto-map)# set security-association lifetime seconds 900
+R1(config-crypto-map)# exit
+
+R3(config)# crypto map CMAP 10 ipsec-isakmp
+R3(config-crypto-map)# match address 101
+R3(config-crypto-map)# set peer <REMOTE_PEER_IP>
+R3(config-crypto-map)# set pfs group14
+R3(config-crypto-map)# set transform-set VPN-SET
+R3(config-crypto-map)# set security-association lifetime seconds 900
+R3(config-crypto-map)# exit
+
+Explanation:
+Ties together all the VPN components — ACL, peer, PFS, and transform set.
+This defines which traffic is encrypted and where it’s sent.
+
+
+---------------------------------------------------------------
+8. APPLY CRYPTO MAP TO INTERFACE
+---------------------------------------------------------------
+R1(config)# interface <WAN_INTERFACE>
+R1(config-if)# crypto map CMAP
+R1(config-if)# exit
+
+R3(config)# interface <WAN_INTERFACE>
+R3(config-if)# crypto map CMAP
+R3(config-if)# exit
+
+Example:
+R1(config)# interface Serial1/1
+R1(config-if)# crypto map CMAP
+R3(config)# interface Serial1/0
+R3(config-if)# crypto map CMAP
+
+Explanation:
+Applies the crypto map to the WAN interface.
+This activates IPsec processing for the defined traffic.
+
+
+---------------------------------------------------------------
+9. VERIFICATION COMMANDS
+---------------------------------------------------------------
+show crypto isakmp policy    ← View IKE Phase 1 policies
+show crypto isakmp sa        ← Check Phase 1 status
+show crypto ipsec sa         ← Verify encrypted packets and SAs
+show crypto map              ← Confirm crypto map application
+show access-lists 101        ← Check ACL hits (tunnel traffic)
+
+Explanation:
+Use these commands to confirm the VPN tunnel is established and encrypted traffic is flowing.
+
+
+---------------------------------------------------------------
+SUMMARY FLOW
+---------------------------------------------------------------
+1. Enable IKE
+2. Configure IKE Phase 1 Policy
+3. Set Pre-Shared Key
+4. Define IPsec Transform Set
+5. Set SA Lifetime
+6. Define Interesting Traffic (ACL)
+7. Create Crypto Map
+8. Apply to Interface
+9. Verify Tunnel
+
+===============================================================

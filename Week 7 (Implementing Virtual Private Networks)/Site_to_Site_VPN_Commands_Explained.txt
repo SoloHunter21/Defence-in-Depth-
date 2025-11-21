@@ -1,0 +1,128 @@
+SITE-TO-SITE VPN CONFIGURATION (R1 & R3)
+---------------------------------------------------
+
+1. ENABLE IKE
+R1(config)# crypto isakmp enable
+R3(config)# crypto isakmp enable
+- Enables IKE (Internet Key Exchange) process on the router to support IPsec negotiation.
+
+---------------------------------------------------
+
+2. CONFIGURE IKE PHASE 1 POLICY
+R1(config)# crypto isakmp policy 10
+R1(config-isakmp)# encryption aes 256
+R1(config-isakmp)# hash sha
+R1(config-isakmp)# authentication pre-share
+R1(config-isakmp)# group 14
+R1(config-isakmp)# lifetime 3600
+R1(config-isakmp)# exit
+
+R3(config)# crypto isakmp policy 10
+R3(config-isakmp)# encryption aes 256
+R3(config-isakmp)# hash sha
+R3(config-isakmp)# authentication pre-share
+R3(config-isakmp)# group 14
+R3(config-isakmp)# lifetime 3600
+R3(config-isakmp)# exit
+
+- Defines IKE Phase 1 parameters:
+  • encryption: AES-256 for strong data confidentiality
+  • hash: SHA for data integrity
+  • authentication: pre-shared key method for peer verification
+  • group: Diffie-Hellman group 14 for key exchange
+  • lifetime: 3600 seconds (1 hour) before rekeying
+
+---------------------------------------------------
+
+3. CONFIGURE PRE-SHARED KEYS
+R1(config)# crypto isakmp key cisco123 address 10.2.2.1
+R3(config)# crypto isakmp key cisco123 address 10.1.1.1
+- Sets the pre-shared key for peer authentication during IKE Phase 1.
+- Each router points to the remote peer’s IP address (the interface used for VPN traffic).
+
+---------------------------------------------------
+
+4. CONFIGURE IPSEC TRANSFORM SET (PHASE 2)
+R1(config)# crypto ipsec transform-set 50 esp-aes 256 esp-sha-hmac
+R3(config)# crypto ipsec transform-set 50 esp-aes 256 esp-sha-hmac
+- Defines the encryption (AES-256) and authentication (SHA-HMAC) algorithms for IPsec Phase 2.
+- Both peers must have identical transform sets for successful negotiation.
+
+---------------------------------------------------
+
+5. SET IPSEC SECURITY ASSOCIATION LIFETIME
+R1(config)# crypto ipsec security-association lifetime seconds 1800
+R3(config)# crypto ipsec security-association lifetime seconds 1800
+- Defines how long the IPsec Security Association (SA) is valid before renegotiation (here, 30 minutes).
+
+---------------------------------------------------
+
+6. DEFINE INTERESTING TRAFFIC (ACLs)
+R1(config)# access-list 101 permit ip 192.168.1.0 0.0.0.255 192.168.3.0 0.0.0.255
+R3(config)# access-list 101 permit ip 192.168.3.0 0.0.0.255 192.168.1.0 0.0.0.255
+- Defines traffic to be encrypted by IPsec. Only packets matching this ACL are encrypted.
+- Must be mirrored on both sides for VPN to form correctly.
+
+---------------------------------------------------
+
+7. CREATE CRYPTO MAP
+R1(config)# crypto map CMAP 10 ipsec-isakmp
+R1(config-crypto-map)# match address 101
+R1(config-crypto-map)# set peer 10.2.2.1
+R1(config-crypto-map)# set pfs group14
+R1(config-crypto-map)# set transform-set 50
+R1(config-crypto-map)# set security-association lifetime seconds 900
+R1(config-crypto-map)# exit
+
+R3(config)# crypto map CMAP 10 ipsec-isakmp
+R3(config-crypto-map)# match address 101
+R3(config-crypto-map)# set peer 10.1.1.1
+R3(config-crypto-map)# set pfs group14
+R3(config-crypto-map)# set transform-set 50
+R3(config-crypto-map)# set security-association lifetime seconds 900
+R3(config-crypto-map)# exit
+
+- The crypto map ties everything together (ACL, peer, transform set, and PFS).
+  • match address: defines which traffic to encrypt
+  • set peer: defines the remote VPN endpoint
+  • set pfs: enables Perfect Forward Secrecy using DH group 14
+  • set transform-set: specifies which transform set to use
+  • set security-association lifetime: rekeys IPsec every 900 seconds
+
+---------------------------------------------------
+
+8. APPLY CRYPTO MAP TO INTERFACE
+R1(config)# interface S1/1
+R1(config-if)# crypto map CMAP
+R1(config-if)# exit
+
+R3(config)# interface S1/0
+R3(config-if)# crypto map CMAP
+R3(config-if)# exit
+- Activates the crypto map on the WAN interfaces facing the peer.
+- This enables IPsec processing for matching traffic.
+
+---------------------------------------------------
+
+9. VERIFICATION COMMANDS
+R1# show crypto isakmp policy
+R1# show crypto isakmp sa
+R1# show crypto ipsec sa
+R1# show crypto map
+R1# show access-lists 101
+
+- Displays the IKE and IPsec policies, active security associations, crypto maps, and ACLs.
+- Use these to confirm tunnel establishment and encryption status.
+
+---------------------------------------------------
+
+SUMMARY FLOW
+1. Enable IKE
+2. Configure IKE Phase 1 Policy
+3. Set Pre-Shared Key
+4. Define IPsec Transform Set
+5. Set SA Lifetime
+6. Define Interesting Traffic (ACL)
+7. Create Crypto Map
+8. Apply Crypto Map to Interface
+9. Verify Tunnel and Encryption
